@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, BotComma
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types.input_file import FSInputFile
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramBadRequest
 from pprint import pprint
 from dotenv import load_dotenv
 load_dotenv()
@@ -12,6 +13,13 @@ load_dotenv()
 from main import db, bot_main
 
 router = Router()
+
+
+from aiogram.filters.callback_data import CallbackData
+
+
+class MyCallbackData(CallbackData, prefix="_"):
+    param: str
 
 
 @router.callback_query(F.data == 'profile_delete')
@@ -37,11 +45,12 @@ async def profile_delete(clb) -> None:
         button_text = f'✅ {button}'
         if button in buttons_locked:
             button_text = f'❌ {button}'
-        print(button)
+
+        callback_data = MyCallbackData(param=button).pack()
         if builder_state:
-            builder.row(InlineKeyboardButton(text=button_text, callback_data=f'{str(button)}'))
+            builder.row(InlineKeyboardButton(text=button_text, callback_data=callback_data))
         else:
-            builder.add(InlineKeyboardButton(text=button_text, callback_data=f'{str(button)}'))
+            builder.add(InlineKeyboardButton(text=button_text, callback_data=callback_data))
 
     builder.row(InlineKeyboardButton(text='🔎 Взять кредит', callback_data='profile_search'))
 
@@ -74,10 +83,19 @@ async def profile_delete(clb) -> None:
         await previous_message.delete()
 
 
-@router.callback_query(F.data == 'zaymer1')
-async def zaymer1(clb) -> None:
-    print('xd')
+@router.callback_query(MyCallbackData.filter())
+async def handle_callback(clb: types.CallbackQuery, callback_data: MyCallbackData):
+    param = callback_data.param
+    print(clb.message.chat.id)
+    db.switch_buttons_locked(user_telegram_id=clb.message.chat.id, name=param)
+    # await clb.message.answer(f"Button clicked with parameter: {param}")
+
+    try:
+        await profile_delete(clb)
+    except Exception as ex:
+        pass
+
+
+@router.callback_query(F.data == 'button_name')
+async def button_name(clb) -> None:
     db.switch_buttons_locked(user_telegram_id=clb.chat.id, name=button_name)
-
-
-
