@@ -18,14 +18,12 @@ load_dotenv()
 bot_main = Bot(token=os.getenv('TELEGRAM_BOT_TOKEN'))
 
 
-from services import start, chat_join_request_handler, profile, order, my_subscribe, contacts
+from services import start, order, my_subscribe, contacts
 
 
 async def main_bot():
     dp.include_routers(
         start.router,
-        chat_join_request_handler.router,
-        profile.router,
         order.router,
         my_subscribe.router,
         contacts.router,

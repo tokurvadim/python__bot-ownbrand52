@@ -9,7 +9,6 @@ from main import db, bot_main
 from dotenv import load_dotenv
 load_dotenv()
 
-from .profile import profile_delete
 router = Router()
 
 
