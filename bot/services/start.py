@@ -21,34 +21,53 @@ async def start(clb) -> None:
             return
 
     db.add_user(user_telegram_id=clb.chat.id)
-    if db.get_user_group_joined(user_telegram_id=clb.chat.id):
-        await profile_delete(clb)
-        return
 
     previous_message = clb
 
     builder = InlineKeyboardBuilder()
+    
+    text: str = ''
 
-    builder.row(InlineKeyboardButton(text='🔗 Подписаться', url=os.getenv("TELEGRAM_GROUP_URL")))
-    builder.row(InlineKeyboardButton(text='✅ Проверить подписку', callback_data='check_subscribe'))
+    if db.get_user_status(user_telegram_id=clb.chat.id)[0]:
+        text = 'Приветствуем вас в боте OwnBrand52! Здесь вы можете продлить подписку, просмотреть информацию о подписке.'
+        builder.row(InlineKeyboardButton(text='🔗 Продлить подписку', callback_data='order_choice'))
+        builder.row(InlineKeyboardButton(text='✅ Моя подписка', callback_data='my_subscribe'))
+        builder.row(InlineKeyboardButton(text='❗ Контакты', callback_data='contacts'))
+    else:
+        text='🤖 Привет\! Я ваш персональный бот, помогающий развивать ваш личный бренд.\nЧтобы воспользоваться всеми нашими функциями, пожалуйста, оформите подписку на наш канал.'
+        builder.row(InlineKeyboardButton(text='🔗 Оформить подписку', callback_data='order_choice'))
 
-    clb: Message = clb
-
-    sent_message = await clb.answer(
-        text='👋 Приветствую\!\n'
-             '*Подпишитесь* на наш *официальный* канал для того, чтобы начать пользоваться *ботом*\!',
+    await clb.answer(
+        text=text,
         reply_markup=builder.as_markup(),
-        parse_mode=ParseMode.MARKDOWN_V2
     )
 
-    db.set_last_bot_message_id(user_telegram_id=clb.chat.id, last_bot_message_id=sent_message.message_id)
     await previous_message.delete()
 
 
-@router.callback_query(F.data == 'check_subscribe')
-async def check_subscribe(clb) -> None:
-    if not db.get_user_group_joined(user_telegram_id=clb.message.chat.id):
-        await bot_main.answer_callback_query(callback_query_id=clb.id, text='Вы не подписались', show_alert=True)
-        return
+@router.callback_query(F.data == 'start')
+async def start(clb: CallbackQuery):
+    if type(clb) is Message:
+        if str(clb.chat.id)[0] == '-':
+            print('С группы сообщение')
+            return
 
-    await profile_delete(clb)
+    builder = InlineKeyboardBuilder()
+    
+    text: str = ''
+
+    if db.get_user_status(user_telegram_id=clb.message.chat.id):
+        text = 'Приветствуем вас в боте OwnBrand52! Здесь вы можете продлить подписку, просмотреть информацию о подписке.'
+        builder.row(InlineKeyboardButton(text='🔗 Продлить подписку', callback_data='order_choice'))
+        builder.row(InlineKeyboardButton(text='✅ Моя подписка', callback_data='my_subscribe'))
+        builder.row(InlineKeyboardButton(text='❗ Контакты', callback_data='contacts'))
+    else:
+        text='🤖 Привет\! Я ваш персональный бот, помогающий развивать ваш личный бренд.\nЧтобы воспользоваться всеми нашими функциями, пожалуйста, оформите подписку на наш канал.'
+        builder.row(InlineKeyboardButton(text='🔗 Оформить подписку', callback_data='order_choice'))
+
+    await clb.message.delete()
+    
+    await clb.message.answer(
+        text=text,
+        reply_markup=builder.as_markup(),
+    )

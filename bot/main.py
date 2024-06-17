@@ -2,28 +2,33 @@ import os
 import asyncio
 import logging
 
-from aiogram import Dispatcher, Bot
-from aiogram.types import BotCommand
+from aiogram import Dispatcher, Bot, F
+from aiogram.types import BotCommand, ContentType
 from dotenv import load_dotenv
 from data.DataBase import DataBase
 
 # Подключаем базу данных
-db = DataBase('data/database.db')
+db = DataBase('bot/data/database.db')
+
+# Диспатчер
+dp = Dispatcher()
+
 load_dotenv()
 
-bot_main = Bot(token=os.getenv("TELEGRAM_BOT_TOKEN"))
+bot_main = Bot(token=os.getenv('TELEGRAM_BOT_TOKEN'))
 
 
-from services import start, chat_join_request_handler, profile
+from services import start, chat_join_request_handler, profile, order, my_subscribe, contacts
 
 
 async def main_bot():
-    dp = Dispatcher()
-
     dp.include_routers(
         start.router,
         chat_join_request_handler.router,
-        profile.router
+        profile.router,
+        order.router,
+        my_subscribe.router,
+        contacts.router,
     )
 
     await bot_main.delete_my_commands()
@@ -43,5 +48,5 @@ async def main():
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
 
-    db.create_table()
+    db.create_tables()
     asyncio.run(main())
