@@ -42,7 +42,7 @@ async def main_bot():
     ]
 
     users = db.get_users()
-    schedule.every().day.at("09:00").do(check_subscribe, users=users, bot=bot_main)
+    schedule.every().day.at("12:38").do(check_subscribe, users=users, bot=bot_main)
 
     await bot_main.set_my_commands(commands=basic_commands)
 
@@ -68,7 +68,7 @@ def check_subscribe(users: list, bot: Bot):
             builder.row(InlineKeyboardButton(text='🔗 Продлить подписку', callback_data='order_choice'))
 
             if user_subscribe == 1:
-                text = '❗*ВНИМАНИЕ!* Напоминаем, что ваша подписка на канал *Личный бренд* закончится уже завтра\!\nЧтобы не потерять доступ, рекоменудем продлить подписку\.'
+                text = '❗*ВНИМАНИЕ* Напоминаем, что ваша подписка на закрытый канал *Личный бренд* закончится уже завтра\!\nЧтобы не потерять доступ, рекомендуем продлить подписку\.'
                 asyncio.run_coroutine_threadsafe(coro=bot.send_message(chat_id=user_id, text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2), loop=asyncio.get_event_loop())
 
             elif user_subscribe == 0 and user_status:
