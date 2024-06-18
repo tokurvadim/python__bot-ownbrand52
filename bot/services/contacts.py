@@ -21,7 +21,7 @@ router = Router()
 async def contacts(clb: CallbackQuery):
     builder = InlineKeyboardBuilder()
 
-    default_text: str = f'Контактная информация'
+    default_text: str = f'✅ При возникновении вопросов по боту или каналу, а также по вопросам сотрудничества обращайтесь в личные сообщения владельцу группы @ElenaC666'
 
     builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
 

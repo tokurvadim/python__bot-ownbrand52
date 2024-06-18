@@ -120,7 +120,7 @@ async def successfull_payment(message: Message, bot: Bot):
 
         date = datetime.datetime.now() + datetime.timedelta(days=1)
         link = await bot.create_chat_invite_link(chat_id=channel_id, member_limit=1, creates_join_request=False, expire_date=date, name='own_brand_52')
-        text = f'Поздравляем со вступлением в лучший канал по составлению личного бренда\! Ссылка на вход в группу уже сформирована: {link.invite_link} (ВНИМАНИЕ: ссылка действует только 1 раз и истекает в течение 24 часов!)'
+        text = f'Поздравляем со вступлением в лучший канал по составлению личного бренда! Ссылка на вход в группу уже сформирована: {link.invite_link} (ВНИМАНИЕ: ссылка действует только 1 раз и истекает в течение 24 часов!)'
 
         await message.delete()
 

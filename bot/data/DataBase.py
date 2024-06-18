@@ -49,6 +49,10 @@ class DataBase:
         self.get_cursor.execute(f'UPDATE User SET subscribe=subscribe+? WHERE user_telegram_id=?', (subscribe, user_telegram_id)).connection.commit()
         return
     
+    def reduce_user_subscribe(self, user_telegram_id: int):
+        self.get_cursor.execute(f'UPDATE User SET subscribe=subscribe-1 WHERE user_telegram_id={user_telegram_id}').connection.commit()
+        return
+    
     def get_user_status(self, user_telegram_id: int) -> int:
         print(user_telegram_id)
         status = self.get_cursor.execute(f'SELECT status FROM User WHERE user_telegram_id={user_telegram_id}').fetchone()
@@ -57,6 +61,14 @@ class DataBase:
     def get_user_subscribe(self, user_telegram_id: int) -> int:
         subscribe = self.get_cursor.execute(f'SELECT subscribe FROM User WHERE user_telegram_id={user_telegram_id}').fetchone()
         return subscribe
+    
+    def get_users(self):
+        users = self.get_cursor.execute('SELECT * FROM User').fetchall()
+        return users
+    
+    def delete_user(self, user_telegram_id: int):
+        self.get_cursor.execute(f'DELETE FROM User WHERE user_telegram_id={user_telegram_id}').connection.commit()
+        return
 
     def get_buttons_locked(self, user_telegram_id: int):
         result = self.get_cursor.execute("SELECT user_buttons_locked FROM User WHERE user_telegram_id = ?",

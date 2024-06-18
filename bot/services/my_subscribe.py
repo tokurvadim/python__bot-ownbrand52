@@ -20,14 +20,13 @@ router = Router()
 @router.callback_query(F.data == 'my_subscribe')
 async def my_subscribe(clb: CallbackQuery):
     user_subscribe: int = db.get_user_subscribe(user_telegram_id=clb.message.chat.id)[0]
-    print(user_subscribe)
 
     builder = InlineKeyboardBuilder()
 
-    default_text: str = f'Подписка найдена✅\n\n Количество дней подписки: {user_subscribe}'
+    default_text: str = f'Подписка найдена✅\n\nКоличество дней подписки: {user_subscribe}'
     text: str = ''
     if user_subscribe == 1:
-        attention_text: str = 'Ваша подписка закончится уже завтра! Рекомендуем ее продлить во избежание исключения из закрытого канала!'
+        attention_text: str = '\n\n❗Ваша подписка закончится уже завтра! Рекомендуем ее продлить во избежание исключения из закрытого канала!'
         text = default_text + attention_text
     else:
         text = default_text
