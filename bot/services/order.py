@@ -2,7 +2,6 @@ import os, time
 from aiogram import Router, F, Bot, types
 from aiogram.filters import Command, callback_data
 from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, BotCommand, LabeledPrice, PreCheckoutQuery, ContentType
-#from aiogram.filters import 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types.input_file import FSInputFile
 from aiogram.types.web_app_info import WebAppInfo
@@ -35,39 +34,24 @@ async def order_choice(clb: CallbackQuery, bot: Bot) -> SendInvoice:
 
     for price in prices:
         callback = MyCallbackData(days=price[0], price=price[1]).pack()
-        builder.row(InlineKeyboardButton(text=f'{price[0]} дней: {price[1]} RUB', callback_data=callback))
+        builder.row(InlineKeyboardButton(text=f'{price[0]} дней: {price[1]} RUB 💰', callback_data=callback))
+
     builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
 
-    if type(clb) is CallbackQuery:
-        message = clb.bot.edit_message_reply_markup
-        await message(
-            chat_id=clb.message.chat.id,
-            message_id=clb.message.message_id,
-            reply_markup=builder.as_markup()
-        )
+    await clb.message.delete()
 
-        await clb.message.edit_text(
-            text=text,
-            reply_markup=builder.as_markup(),
-            parse_mode=ParseMode.MARKDOWN_V2
-        )
-    elif type(clb) is Message:
-        previous_message = clb
-
-        clb: Message = clb
-
-        await clb.answer(
-            text=text,
-            reply_markup=builder.as_markup(),
-            parse_mode=ParseMode.MARKDOWN_V2
-        )
+    await clb.message.answer(
+        text=text,
+        reply_markup=builder.as_markup(),
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
 
 
 @router.callback_query(MyCallbackData.filter())
 async def order(clb: CallbackQuery, bot: Bot, callback_data: MyCallbackData) -> SendInvoice:
     await bot.send_invoice(
         chat_id=clb.message.chat.id,
-        title='''Покупка подписка на канал "Личный бренд"''',
+        title='''Покупка подписки на канал "Личный бренд"''',
         description='Оплата подписки',
         payload='Payload through Telegram Bot',
         provider_token=provider_token,
@@ -106,23 +90,22 @@ async def successfull_payment(message: Message, bot: Bot):
 
     user_status = db.get_user_status(user_telegram_id=message.chat.id)[0]
 
-    if user_status:
-        text = 'Поздравляем вас с продлением подписки! Теперь вы можете дольше составлять свой личный бренд!'
+    if user_status == 1:
+        text = '🤩*Поздравляем вас с продлением подписки\!*\nТеперь вы можете еще дольше составлять свой личный бренд\!'
 
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(text='⬅️ В начало', callback_data='start'))
 
         await message.delete()
+        await message.answer(text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2)
 
-        await message.answer(text=text, reply_markup=builder.as_markup())
     else:
         db.update_user_status(user_telegram_id=message.chat.id, status=1)
 
         date = datetime.datetime.now() + datetime.timedelta(days=1)
         link = await bot.create_chat_invite_link(chat_id=channel_id, member_limit=1, creates_join_request=False, expire_date=date, name='own_brand_52')
-        text = f'Поздравляем со вступлением в лучший канал по составлению личного бренда! Ссылка на вход в группу уже сформирована: {link.invite_link} (ВНИМАНИЕ: ссылка действует только 1 раз и истекает в течение 24 часов!)'
+        text = f'🥳 Поздравляем со вступлением в лучший канал по составлению личного бренда! Ссылка на вход в группу уже сформирована: {link.invite_link}\n❗*ВНИМАНИЕ:* ссылка действует только 1 раз и истекает в течение 24 часов!'
 
         await message.delete()
-
         await message.answer(text=text)
     

@@ -7,6 +7,7 @@ from aiogram import Dispatcher, Bot, F
 from aiogram.types import BotCommand, ContentType, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.exceptions import TelegramForbiddenError
+from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 import datetime
 
@@ -41,7 +42,7 @@ async def main_bot():
     ]
 
     users = db.get_users()
-    schedule.every().day.at("11:43").do(check_subscribe, users=users, bot=bot_main)
+    schedule.every().day.at("09:00").do(check_subscribe, users=users, bot=bot_main)
 
     await bot_main.set_my_commands(commands=basic_commands)
 
@@ -67,23 +68,23 @@ def check_subscribe(users: list, bot: Bot):
             builder.row(InlineKeyboardButton(text='🔗 Продлить подписку', callback_data='order_choice'))
 
             if user_subscribe == 1:
-                text = 'ВНИМАНИЕ! Напоминаем, что ваша подписка на группу личного бренда закончится уже завтра! Чтобы не потерять доступ, рекоменудем продлить подписку.'
-                asyncio.run_coroutine_threadsafe(coro=bot.send_message(chat_id=user_id, text=text, reply_markup=builder.as_markup()), loop=asyncio.get_event_loop())
+                text = '❗*ВНИМАНИЕ!* Напоминаем, что ваша подписка на канал *Личный бренд* закончится уже завтра\!\nЧтобы не потерять доступ, рекоменудем продлить подписку\.'
+                asyncio.run_coroutine_threadsafe(coro=bot.send_message(chat_id=user_id, text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2), loop=asyncio.get_event_loop())
 
             elif user_subscribe == 0 and user_status:
                 db.update_user_status(user_telegram_id=user_id, status=0)
 
                 asyncio.run_coroutine_threadsafe(coro=bot.ban_chat_member(chat_id=os.getenv('TELEGRAM_CHANNEL_ID'), user_id=user[0], until_date=datetime.datetime.now() + datetime.timedelta(seconds=60)), loop=asyncio.get_event_loop())
 
-                text = 'Уведомляем вас, что подписка на канал личный бренд подошла к концу, вы были автоматически исключены из канала. Чтобы вернуть доступ, продлите подписку. ВНИМАНИЕ: после получения этого сообщения подождите РОВНО 60 секунд, чтобы продлить подписку.'
+                text = '❗Уведомляем вас, что подписка на канал *Личный бренд* подошла к концу, вы были автоматически исключены из канала\. Чтобы вернуть доступ, продлите подписку\.\n*ВНИМАНИЕ*: после получения этого сообщения подождите РОВНО 60 секунд, прежде чем продлить подписку\.'
 
-                asyncio.run_coroutine_threadsafe(coro=bot.send_message(chat_id=user_id, text=text, reply_markup=builder.as_markup()), loop=asyncio.get_event_loop())
+                asyncio.run_coroutine_threadsafe(coro=bot.send_message(chat_id=user_id, text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2), loop=asyncio.get_event_loop())
 
             else:
                 pass
 
         except TelegramForbiddenError:
-            db.delete_user(user_telegram_id=user[0])
+            db.delete_user(user_telegram_id=user_id)
 
 
 

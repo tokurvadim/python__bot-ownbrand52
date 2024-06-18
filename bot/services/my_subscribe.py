@@ -23,10 +23,11 @@ async def my_subscribe(clb: CallbackQuery):
 
     builder = InlineKeyboardBuilder()
 
-    default_text: str = f'Подписка найдена✅\n\nКоличество дней подписки: {user_subscribe}'
+    default_text: str = f'Подписка найдена✅\n\nКоличество дней подписки: *{user_subscribe}*'
     text: str = ''
+    
     if user_subscribe == 1:
-        attention_text: str = '\n\n❗Ваша подписка закончится уже завтра! Рекомендуем ее продлить во избежание исключения из закрытого канала!'
+        attention_text: str = '\n\n❗Ваша подписка закончится уже завтра\! Рекомендуем ее продлить во избежание исключения из закрытого канала\!'
         text = default_text + attention_text
     else:
         text = default_text
@@ -39,4 +40,5 @@ async def my_subscribe(clb: CallbackQuery):
     await clb.message.answer(
             text=text,
             reply_markup=builder.as_markup(),
+            parse_mode=ParseMode.MARKDOWN_V2
     )
