@@ -40,7 +40,7 @@ async def order_choice(clb: CallbackQuery, bot: Bot) -> SendInvoice:
 
     builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
 
-    await clb.message.delete()
+    await clb.bot.delete_message(chat_id=clb.message.chat.id, message_id=clb.message.message_id)
 
     await clb.message.answer(
         text=text,
@@ -64,7 +64,7 @@ async def order(clb: CallbackQuery, bot: Bot, callback_data: MyCallbackData):
         builder.row(InlineKeyboardButton(text='💜 Оплатить', url=payment_url))
         builder.row(InlineKeyboardButton(text='✅ Проверить подписку', callback_data=f'check_{payment_id}_{int(payment.amount.value)}'))
 
-        await clb.message.delete()
+        await clb.bot.delete_message(chat_id=clb.message.chat.id, message_id=clb.message.message_id)
 
         await clb.message.answer(text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2)
     except Exception:
@@ -75,7 +75,7 @@ async def order(clb: CallbackQuery, bot: Bot, callback_data: MyCallbackData):
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
 
-        await clb.message.delete()
+        await clb.bot.delete_message(chat_id=clb.message.chat.id, message_id=clb.message.message_id)
         await clb.message.answer(text=text, reply_markup=builder.as_markup())
 
 

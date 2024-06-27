@@ -35,7 +35,7 @@ async def start(clb) -> None:
         builder.row(InlineKeyboardButton(text='🔗 Оформить подписку', callback_data='order_choice'))
 
 
-    await clb.delete()
+    await clb.bot.delete_message(chat_id=clb.chat.id, message_id=clb.message_id)
     
     await clb.answer(
         text=text,
@@ -60,7 +60,7 @@ async def start(clb: CallbackQuery):
         builder.row(InlineKeyboardButton(text='🔗 Оформить подписку', callback_data='order_choice'))
 
 
-    await clb.message.delete()
+    await clb.bot.delete_message(chat_id=clb.message.chat.id, message_id=clb.message.message_id)
     
     await clb.message.answer(
         text=text,

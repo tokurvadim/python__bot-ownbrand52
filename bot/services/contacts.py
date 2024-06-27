@@ -20,7 +20,7 @@ async def contacts(clb: CallbackQuery):
 
     builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
 
-    await clb.message.delete()
+    await clb.bot.delete_message(chat_id=clb.message.chat.id, message_id=clb.message.message_id)
     
     await clb.message.answer(
             text=default_text,

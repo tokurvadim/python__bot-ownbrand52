@@ -35,7 +35,7 @@ async def my_subscribe(clb: CallbackQuery):
     builder.row(InlineKeyboardButton(text='🔗 Продлить подписку', callback_data='order_choice'))
     builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
 
-    await clb.message.delete()
+    await clb.bot.delete_message(chat_id=clb.message.chat.id, message_id=clb.message.message_id)
     
     await clb.message.answer(
             text=text,
