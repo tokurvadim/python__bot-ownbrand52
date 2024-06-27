@@ -11,9 +11,11 @@ from aiogram.methods import create_chat_invite_link, answer_pre_checkout_query, 
 from pprint import pprint
 from dotenv import load_dotenv
 import datetime
+import yookassa
 load_dotenv()
 
 from main import db, bot_main, dp
+from services.yookassa_data import create_payment
 
 router = Router()
 
@@ -48,64 +50,90 @@ async def order_choice(clb: CallbackQuery, bot: Bot) -> SendInvoice:
 
 
 @router.callback_query(MyCallbackData.filter())
-async def order(clb: CallbackQuery, bot: Bot, callback_data: MyCallbackData) -> SendInvoice:
-    await bot.send_invoice(
-        chat_id=clb.message.chat.id,
-        title='''Покупка подписки на канал "Личный бренд"''',
-        description='Оплата подписки',
-        payload='Payload through Telegram Bot',
-        provider_token=provider_token,
-        currency='RUB',
-        prices=[
-            LabeledPrice(
-                label=f'{callback_data.days} дней',
-                amount=callback_data.price * 100
-            )
-        ],
-        protect_content=True,
-        allow_sending_without_reply=True,
-        reply_markup=None,
-    )
+async def order(clb: CallbackQuery, bot: Bot, callback_data: MyCallbackData):
+    global payment_url, payment_id
+    try:
+        payment_url, payment_id = create_payment(amount=callback_data.price, user_id=clb.message.chat.id)
 
+        payment = yookassa.Payment.find_one(payment_id=payment_id)
 
-@router.pre_checkout_query(lambda query: True)
-async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
-    print(f'Запрос на платеж от пользователя {pre_checkout_query.from_user.id} на сумму {pre_checkout_query.total_amount}')
+        print(f'Запрос на платеж от пользователя {clb.message.chat.id} на сумму {payment.amount.value} RUB')
 
-    prices = db.get_price_data()
-    subscribe: int
-
-    for price in prices.items():
-        if price[1] == pre_checkout_query.total_amount // 100:
-            subscribe = price[0]
-
-    db.update_user_subscribe(subscribe=subscribe, user_telegram_id=pre_checkout_query.from_user.id)
-
-    await pre_checkout_query.answer(ok=True)
-
-
-@router.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
-async def successfull_payment(message: Message, bot: Bot):
-    print(f'Платеж от пользователя {message.chat.id} прошел успешно')
-
-    user_status = db.get_user_status(user_telegram_id=message.chat.id)[0]
-
-    if user_status == 1:
-        text = '🤩*Поздравляем вас с продлением подписки\!*\nТеперь вы можете еще дольше составлять свой личный бренд\!'
+        text: str = '🔥 Ваша ссылка на оплату готова\! Вы в одном шаге от получения лучших советов по продвижению личного бренда\!\n❗*ВНИМАНИЕ:* после проведения оплаты *ОБЯЗАТЕЛЬНО* нажмите кнопку *✅ Проверить подписку* для регистрации оплаты внутри бота\!"'
 
         builder = InlineKeyboardBuilder()
-        builder.row(InlineKeyboardButton(text='⬅️ В начало', callback_data='start'))
+        builder.row(InlineKeyboardButton(text='💜 Оплатить', url=payment_url))
+        builder.row(InlineKeyboardButton(text='✅ Проверить подписку', callback_data=f'check_{payment_id}_{int(payment.amount.value)}'))
 
-        await message.delete()
-        await message.answer(text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2)
+        await clb.message.delete()
+
+        await clb.message.answer(text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2)
+    except AttributeError:
+        print(f'Платеж от пользователя {clb.message.chat.id} не прошел')
+
+        text = '🤕 Кажется, что-то пошло не так... Попробуйте провести оплату позже.'
+
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
+
+        await clb.message.delete()
+        await clb.message.answer(text=text, reply_markup=builder.as_markup())
+
+
+
+
+
+@router.callback_query(lambda c: 'check' in c.data)
+async def check_payment(clb: CallbackQuery):
+    result = check(clb.data.split('_')[-2])
+    payment_amount = int(clb.data.split('_')[-1])
+
+    if result:
+        print(f'Платеж от пользователя {clb.message.chat.id} прошел успешно')
+
+        prices = db.get_price_data()
+        subscribe: int
+
+        for price in prices.items():
+            if price[1] == payment_amount:
+                subscribe = price[0]
+
+        db.update_user_subscribe(subscribe=subscribe, user_telegram_id=clb.message.chat.id)
+
+        user_status = db.get_user_status(user_telegram_id=clb.message.chat.id)[0]
+
+        if user_status == 1:
+            text = '🤩*Поздравляем вас с продлением подписки\!*\nТеперь вы можете еще дольше составлять свой личный бренд\!'
+
+            builder = InlineKeyboardBuilder()
+            builder.row(InlineKeyboardButton(text='⬅️ В начало', callback_data='start'))
+
+            await clb.message.delete()
+            await clb.message.answer(text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2)
+
+        else:
+            db.update_user_status(user_telegram_id=clb.message.chat.id, status=1)
+
+            date = datetime.datetime.now() + datetime.timedelta(days=1)
+            link = await clb.bot.create_chat_invite_link(chat_id=channel_id, member_limit=1, creates_join_request=False, expire_date=date, name='own_brand_52')
+            text = f'🥳 Поздравляем со вступлением в лучший канал по составлению личного бренда! Ссылка на вход в группу уже сформирована: {link.invite_link}\n❗*ВНИМАНИЕ:* ссылка действует только 1 раз и истекает в течение 24 часов!'
+
+            await clb.message.delete()
+            await clb.message.answer(text=text)
 
     else:
-        db.update_user_status(user_telegram_id=message.chat.id, status=1)
+        print(f'Платеж от пользователя {clb.message.chat.id} не прошел')
 
-        date = datetime.datetime.now() + datetime.timedelta(days=1)
-        link = await bot.create_chat_invite_link(chat_id=channel_id, member_limit=1, creates_join_request=False, expire_date=date, name='own_brand_52')
-        text = f'🥳 Поздравляем со вступлением в лучший канал по составлению личного бренда! Ссылка на вход в группу уже сформирована: {link.invite_link}\n❗*ВНИМАНИЕ:* ссылка действует только 1 раз и истекает в течение 24 часов!'
+        text = '🤕 Кажется, что-то пошло не так... Попробуйте провести оплату позже.'
 
-        await message.delete()
-        await message.answer(text=text)
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
+
+        await clb.message.delete()
+        await clb.message.answer(text=text, reply_markup=builder.as_markup())
     
+
+
+def check(payment_id):
+    payment = yookassa.Payment.find_one(payment_id=payment_id)
+    return payment.status == 'succeeded'

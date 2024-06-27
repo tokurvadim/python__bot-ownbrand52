@@ -54,7 +54,6 @@ class DataBase:
         return
     
     def get_user_status(self, user_telegram_id: int) -> int:
-        print(user_telegram_id)
         status = self.get_cursor.execute(f'SELECT status FROM User WHERE user_telegram_id={user_telegram_id}').fetchone()
         return status
     
