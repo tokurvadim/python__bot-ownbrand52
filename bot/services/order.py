@@ -51,7 +51,6 @@ async def order_choice(clb: CallbackQuery, bot: Bot) -> SendInvoice:
 
 @router.callback_query(MyCallbackData.filter())
 async def order(clb: CallbackQuery, bot: Bot, callback_data: MyCallbackData):
-    global payment_url, payment_id
     try:
         payment_url, payment_id = create_payment(amount=callback_data.price, user_id=clb.message.chat.id)
 
@@ -68,7 +67,7 @@ async def order(clb: CallbackQuery, bot: Bot, callback_data: MyCallbackData):
         await clb.message.delete()
 
         await clb.message.answer(text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2)
-    except AttributeError:
+    except Exception:
         print(f'Платеж от пользователя {clb.message.chat.id} не прошел')
 
         text = '🤕 Кажется, что-то пошло не так... Попробуйте провести оплату позже.'
