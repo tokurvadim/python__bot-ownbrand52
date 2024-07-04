@@ -12,6 +12,7 @@ from pprint import pprint
 from dotenv import load_dotenv
 import datetime
 import yookassa
+import logging
 load_dotenv()
 
 from main import db, bot_main, dp
@@ -22,9 +23,7 @@ router = Router()
 provider_token = os.getenv('TELEGRAM_PAYMENT_TOKEN')
 channel_id = os.getenv('TELEGRAM_CHANNEL_ID')
 
-class MyCallbackData(callback_data.CallbackData, prefix="_"):
-    days: int
-    price: int
+
 
 
 @router.callback_query(F.data == 'order_choice')
@@ -35,8 +34,7 @@ async def order_choice(clb: CallbackQuery, bot: Bot) -> SendInvoice:
     prices = db.get_table_price()
 
     for price in prices:
-        callback = MyCallbackData(days=price[0], price=price[1]).pack()
-        builder.row(InlineKeyboardButton(text=f'{price[0]} дней: {price[1]} RUB 💰', callback_data=callback))
+        builder.row(InlineKeyboardButton(text=f'{price[0]} дней: {price[1]} RUB 💰', callback_data=f'payment_{price[0]}_{price[1]}'))
 
     builder.row(InlineKeyboardButton(text='⬅️ Назад', callback_data='start'))
 
@@ -49,26 +47,32 @@ async def order_choice(clb: CallbackQuery, bot: Bot) -> SendInvoice:
     )
 
 
-@router.callback_query(MyCallbackData.filter())
-async def order(clb: CallbackQuery, bot: Bot, callback_data: MyCallbackData):
+@router.callback_query(lambda c: 'payment' in c.data)
+async def order(clb: CallbackQuery):
     try:
-        payment_url, payment_id = create_payment(amount=callback_data.price, user_id=clb.message.chat.id)
+        days = clb.data.split('_')[-2]
+        price = clb.data.split('_')[-1]
+
+        logging.info('before')
+        payment_url, payment_id = create_payment(amount=price)
+        logging.info('after')
 
         payment = yookassa.Payment.find_one(payment_id=payment_id)
 
-        print(f'Запрос на платеж от пользователя {clb.message.chat.id} на сумму {payment.amount.value} RUB')
+        logging.info(f'Запрос на платеж от пользователя {clb.message.chat.id} на сумму {payment.amount.value} RUB')
 
         text: str = '🔥 Ваша ссылка на оплату готова\! Вы в одном шаге от получения лучших советов по продвижению личного бренда\!\n❗*ВНИМАНИЕ:* после проведения оплаты *ОБЯЗАТЕЛЬНО* нажмите кнопку *✅ Проверить подписку* для регистрации оплаты внутри бота\!"'
 
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(text='💜 Оплатить', url=payment_url))
-        builder.row(InlineKeyboardButton(text='✅ Проверить подписку', callback_data=f'check_{payment_id}_{int(payment.amount.value)}'))
+        builder.row(InlineKeyboardButton(text='✅ Проверить оплату', callback_data=f'check_{payment_id}_{int(payment.amount.value)}'))
 
         await clb.bot.delete_message(chat_id=clb.message.chat.id, message_id=clb.message.message_id)
 
         await clb.message.answer(text=text, reply_markup=builder.as_markup(), parse_mode=ParseMode.MARKDOWN_V2)
-    except Exception:
-        print(f'Платеж от пользователя {clb.message.chat.id} не прошел')
+    except AttributeError as e:
+        logging.info(e)
+        logging.info(f'Платеж от пользователя {clb.message.chat.id} не прошел')
 
         text = '🤕 Кажется, что-то пошло не так... Попробуйте провести оплату позже.'
 
@@ -121,7 +125,7 @@ async def check_payment(clb: CallbackQuery):
             await clb.message.answer(text=text)
 
     else:
-        print(f'Платеж от пользователя {clb.message.chat.id} не прошел')
+        logging.info(f'Платеж от пользователя {clb.message.chat.id} не прошел')
 
         text = '🤕 Кажется, что-то пошло не так... Попробуйте провести оплату позже.'
 

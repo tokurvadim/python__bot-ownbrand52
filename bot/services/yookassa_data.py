@@ -1,15 +1,23 @@
 import os
 from yookassa import Configuration, Payment
 import uuid
+from pprint import pprint
+import logging
+from time import sleep
 
 SHOP_ID = os.getenv('YOOKASSA_SHOP_ID')
 SECRET_KEY = os.getenv('YOOKASSA_API_TOKEN')
 
-Configuration.account_id = SHOP_ID
-Configuration.secret_key = SECRET_KEY
+#Configuration.account_id = SHOP_ID
+#Configuration.secret_key = SECRET_KEY
 
-def create_payment(amount: int, user_id: int):
-    id_key = str(uuid.uuid4)
+
+def create_payment(amount: int):
+    Configuration.account_id = SHOP_ID
+    Configuration.secret_key = SECRET_KEY
+
+    id_key = str(uuid.uuid4())
+
     payment = Payment.create({
         'amount': {
             'value': amount,
@@ -23,9 +31,6 @@ def create_payment(amount: int, user_id: int):
             'return_url': 'https://t.me/ownbrand52_bot'
         },
         'capture': True,
-        'metadata': {
-            'chat_id': user_id
-        },
         'description': 'Оплата подписки'
     }, id_key)
 
